@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AUC与R平方(R²)解释 | 机器学习评估指标</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    
+    <!-- 配置Tailwind自定义颜色和字体 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#10B981',
+                        accent: '#8B5CF6',
+                        neutral: '#1F2937',
+                        light: '#F9FAFB'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .transition-smooth {
+                transition: all 0.3s ease-in-out;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans">
+    <!-- 导航栏 -->
+    <nav class="sticky top-0 z-50 bg-white shadow-md transition-smooth">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="fa fa-line-chart text-primary text-2xl"></i>
+                <span class="text-xl font-bold text-neutral">机器学习评估指标</span>
+            </div>
+            <div class="hidden md:flex space-x-6">
+                <a href="#home" class="hover:text-primary transition-smooth">首页</a>
+                <a href="#auc" class="hover:text-primary transition-smooth">AUC</a>
+                <a href="#r-squared" class="hover:text-primary transition-smooth">R平方</a>
+                <a href="#comparison" class="hover:text-primary transition-smooth">对比分析</a>
+                <a href="#quiz" class="hover:text-primary transition-smooth">小测验</a>
+            </div>
+            <button class="md:hidden text-gray-600 focus:outline-none" id="menu-toggle">
+                <i class="fa fa-bars text-xl"></i>
+            </button>
+        </div>
+        <!-- 移动端菜单 -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white px-4 py-2 shadow-lg">
+            <a href="#home" class="block py-2 hover:text-primary transition-smooth">首页</a>
+            <a href="#auc" class="block py-2 hover:text-primary transition-smooth">AUC</a>
+            <a href="#r-squared" class="block py-2 hover:text-primary transition-smooth">R平方</a>
+            <a href="#comparison" class="block py-2 hover:text-primary transition-smooth">对比分析</a>
+            <a href="#quiz" class="block py-2 hover:text-primary transition-smooth">小测验</a>
+        </div>
+    </nav>
+
+    <!-- 英雄区域 -->
+    <section id="home" class="bg-gradient-to-r from-primary to-accent text-white py-16 md:py-24">
+        <div class="container mx-auto px-4">
+            <div class="max-w-3xl mx-auto text-center">
+                <h1 class="text-4xl md:text-5xl font-bold mb-6 text-shadow">AUC与R平方(R²)详解</h1>
+                <p class="text-xl md:text-2xl opacity-90 mb-8">机器学习中两个重要评估指标的直观解释与应用</p>
+                <div class="flex flex-col sm:flex-row justify-center gap-4">
+                    <a href="#auc" class="bg-white text-primary hover:bg-gray-100 font-medium py-3 px-6 rounded-lg transition-smooth shadow-lg">
+                        了解AUC <i class="fa fa-arrow-right ml-2"></i>
+                    </a>
+                    <a href="#r-squared" class="bg-transparent border-2 border-white hover:bg-white/10 font-medium py-3 px-6 rounded-lg transition-smooth">
+                        了解R平方 <i class="fa fa-calculator ml-2"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 简介部分 -->
+    <section class="py-16 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="max-w-3xl mx-auto">
+                <h2 class="text-3xl font-bold mb-6 text-center text-neutral">评估指标的重要性</h2>
+                <p class="text-lg mb-6 leading-relaxed">
+                    在机器学习中，选择合适的评估指标对于衡量模型性能至关重要。不同的任务需要不同的评估指标，
+                    错误的选择可能导致对模型性能的误判。
+                </p>
+                <p class="text-lg leading-relaxed">
+                    本网页将详细解释两个常用的评估指标：<strong>AUC（Area Under the ROC Curve）</strong>和
+                    <strong>R平方（R-Squared，R²）</strong>。AUC主要用于评估分类模型，而R平方则主要用于评估回归模型。
+                </p>
+                
+                <div class="mt-10 bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 bg-primary/10 p-3 rounded-full">
+                            <i class="fa fa-lightbulb-o text-primary text-xl"></i>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-xl font-semibold mb-2">学习提示</h3>
+                            <p>理解这些评估指标不仅能帮助你评价模型性能，还能指导你选择合适的模型和改进方向。请结合可视化示例加深理解。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- AUC部分 -->
+    <section id="auc" class="py-16 bg-gray-50">
+        <div class="container mx-auto px-4">
+            <div class="max-w-4xl mx-auto">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold mb-4 text-neutral">AUC（ROC曲线下面积）</h2>
+                    <p class="text-lg text-gray-600 max-w-2xl mx-auto">用于评估二分类模型性能的重要指标</p>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-md p-6 md:p-8 mb-10">
+                    <h3 class="text-2xl font-semibold mb-4 text-primary">什么是AUC？</h3>
+                    <p class="mb-4 leading-relaxed">
+                        AUC是ROC（Receiver Operating Characteristic，受试者工作特征）曲线下的面积，是评估二分类模型性能的常用指标。
+                        它衡量的是模型区分正负样本的能力。
+                    </p>
+                    <p class="leading-relaxed">
+                        AUC的取值范围在0到1之间：
+                    </p>
+                    <ul class="list-disc pl-6 mt-3 space-y-2">
+                        <li><strong>1.0</strong>：完美的分类器，能够完全区分正负样本</li>
+                        <li><strong>0.5</strong>：与随机猜测无异，没有区分能力</li>
+                        <li><strong>0.0-0.5</strong>：比随机猜测还差，但可以通过反转预测结果来改善</li>
+                    </ul>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-md p-6 md:p-8 mb-10">
+                    <h3 class="text-2xl font-semibold mb-4 text-primary">ROC曲线是什么？</h3>
+                    <p class="mb-6 leading-relaxed">
+                        ROC曲线是以假正例率（False Positive Rate, FPR）为横轴，真正例率（True Positive Rate, TPR）为纵轴绘制的曲线。
+                        它展示了在不同的分类阈值下，模型的性能表现。
+                    </p>
+                    
+                    <div class="grid md:grid-cols-2 gap-6 mb-6">
+                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                            <h4 class="font-semibold mb-2 text-neutral">真正例率（TPR）</h4>
+                            <p>也称为灵敏度（Sensitivity）或召回率（Recall），表示实际为正例的样本中被正确预测为正例的比例。</p>
+                            <p class="mt-2 font-mono bg-gray-100 p-2 rounded">TPR = TP / (TP + FN)</p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                            <h4 class="font-semibold mb-2 text-neutral">假正例率（FPR）</h4>
+                            <p>表示实际为负例的样本中被错误预测为正例的比例。</p>
+                            <p class="mt-2 font-mono bg-gray-100 p-2 rounded">FPR = FP / (FP + TN)</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-8">
+                        <h4 class="font-semibold mb-4 text-neutral">ROC曲线与AUC可视化</h4>
+                        <div class="h-80">
+                            <canvas id="rocChart"></canvas>
+                        </div>
+                        <div class="mt-4 text-sm text-gray-500 text-center">
+                            不同性能模型的ROC曲线对比（AUC值标注在曲线上）
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-md p-6 md:p-8">
+                    <h3 class="text-2xl font-semibold mb-4 text-primary">AUC的应用场景</h3>
+                    <p class="mb-4 leading-relaxed">
+                        AUC特别适用于以下场景：
+                    </p>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div class="flex items-start p-3 border border-gray-100 rounded-lg hover:bg-gray-50 transition-smooth">
+                            <i class="fa fa-check-circle text-secondary mt-1 mr-3"></i>
+                            <div>
+                                <h4 class="font-medium">不平衡数据集</h4>
+                                <p class="text-gray-600 text-sm">在正负样本比例悬殊时，AUC比准确率更能反映模型性能</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start p-3 border border-gray-100 rounded-lg hover:bg-gray-50 transition-smooth">
+                            <i class="fa fa-check-circle text-secondary mt-1 mr-3"></i>
+                            <div>
+                                <h4 class="font-medium">需要排序的场景</h4>
+                                <p class="text-gray-600 text-sm">如推荐系统，关注的是样本的排序而非具体分类阈值</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start p-3 border border-gray-100 rounded-lg hover:bg-gray-50 transition-smooth">
+                            <i class="fa fa-check-circle text-secondary mt-1 mr-3"></i>
+                            <div>
+                                <h4 class="font-medium">模型比较</h4>
+                                <p class="text-gray-600 text-sm">方便比较不同模型的总体性能，AUC值越高模型越好</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start p-3 border border-gray-100 rounded-lg hover:bg-gray-50 transition-smooth">
+                            <i class="fa fa-check-circle text-secondary mt-1 mr-3"></i>
+                            <div>
+                                <h4 class="font-medium">阈值不固定的情况</h4>
+                                <p class="text-gray-600 text-sm">当分类阈值可能变化时，AUC提供了整体性能评估</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- R平方部分 -->
+    <section id="r-squared" class="py-16 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="max-w-4xl mx-auto">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold mb-4 text-neutral">R平方（R²）</h2>
+                    <p class="text-lg text-gray-600 max-w-2xl mx-auto">用于评估回归模型性能的重要指标</p>
+                </div>
+                
+                <div class="bg-gray-50 rounded-xl shadow-md p-6 md:p-8 mb-10">
+                    <h3 class="text-2xl font-semibold mb-4 text-accent">什么是R平方？</h3>
+                    <p class="mb-4 leading-relaxed">
+                        R平方（R²），也称为决定系数，是衡量回归模型拟合优度的指标。它表示因变量的变异中可以被自变量解释的比例。
+                    </p>
+                    <p class="leading-relaxed">
+                        R²的取值范围通常在0到1之间：
+                    </p>
+                    <ul class="list-disc pl-6 mt-3 space-y-2">
+                        <li><strong>1.0</strong>：完美拟合，模型可以解释因变量的所有变异</li>
+                        <li><strong>0.0</strong>：模型效果与简单取均值相同，没有解释任何变异</li>
+                        <li><strong>负值</strong>：模型效果比简单取均值还差</li>
+                    </ul>
+                    
+                    <div class="mt-6 p-4 bg-white rounded-lg border border-gray-200">
+                        <p class="font-semibold mb-2">R²计算公式：</p>
+                        <p class="font-mono bg-gray-100 p-3 rounded text-center">
+                            R² = 1 - (SS<sub>res</sub> / SS<sub>tot</sub>)
+                        </p>
+                        <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <p><strong>SS<sub>res</sub></strong>：残差平方和</p>
+                                <p>即预测值与实际值之间差异的平方和</p>
+                            </div>
+                            <div>
+                                <p><strong>SS<sub>tot</sub></strong>：总平方和</p>
+                                <p>即实际值与均值之间差异的平方和</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-gray-50 rounded-xl shadow-md p-6 md:p-8 mb-10">
+                    <h3 class="text-2xl font-semibold mb-4 text-accent">R平方的直观理解</h3>
+                    <p class="mb-6 leading-relaxed">
+                        R²可以理解为模型解释数据变异的能力。数值越接近1，表示模型对数据的拟合越好，能够解释的变异越多。
+                    </p>
+                    
+                    <div class="mt-8">
+                        <h4 class="font-semibold mb-4 text-neutral">不同R²值的回归拟合效果</h4>
+                        <div class="h-80">
+                            <canvas id="rSquaredChart"></canvas>
+                        </div>
+                        <div class="mt-4 text-sm text-gray-500 text-center">
+                            不同R²值对应的回归模型拟合效果对比
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-gray-50 rounded-xl shadow-md p-6 md:p-8">
+                    <h3 class="text-2xl font-semibold mb-4 text-accent">R平方的应用与局限性</h3>
+                    
+                    <div class="mb-6">
+                        <h4 class="font-semibold mb-3 text-neutral">适用场景</h4>
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div class="flex items-start p-3 bg-white rounded-lg hover:shadow-sm transition-smooth">
+                                <i class="fa fa-check-circle text-secondary mt-1 mr-3"></i>
+                                <div>
+                                    <h5 class="font-medium">线性回归模型</h5>
+                                    <p class="text-gray-600 text-sm">评估线性关系的拟合程度</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start p-3 bg-white rounded-lg hover:shadow-sm transition-smooth">
+                                <i class="fa fa-check-circle text-secondary mt-1 mr-3"></i>
+                                <div>
+                                    <h5 class="font-medium">模型比较</h5>
+                                    <p class="text-gray-600 text-sm">比较同一数据集上的不同回归模型</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start p-3 bg-white rounded-lg hover:shadow-sm transition-smooth">
+                                <i class="fa fa-check-circle text-secondary mt-1 mr-3"></i>
+                                <div>
+                                    <h5 class="font-medium">特征重要性</h5>
+                                    <p class="text-gray-600 text-sm">判断自变量对因变量的解释能力</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-semibold mb-3 text-neutral">局限性</h4>
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div class="flex items-start p-3 bg-white rounded-lg hover:shadow-sm transition-smooth">
+                                <i class="fa fa-exclamation-triangle text-yellow-500 mt-1 mr-3"></i>
+                                <div>
+                                    <h5 class="font-medium">不适合非线性模型</h5>
+                                    <p class="text-gray-600 text-sm">对非线性关系的评估效果较差</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start p-3 bg-white rounded-lg hover:shadow-sm transition-smooth">
+                                <i class="fa fa-exclamation-triangle text-yellow-500 mt-1 mr-3"></i>
+                                <div>
+                                    <h5 class="font-medium">受异常值影响大</h5>
+                                    <p class="text-gray-600 text-sm">异常值可能显著改变R²值</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start p-3 bg-white rounded-lg hover:shadow-sm transition-smooth">
+                                <i class="fa fa-exclamation-triangle text-yellow-500 mt-1 mr-3"></i>
+                                <div>
+                                    <h5 class="font-medium">随变量增加而增大</h5>
+                                    <p class="text-gray-600 text-sm">添加更多变量总会使R²增大或保持不变</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 对比分析部分 -->
+    <section id="comparison" class="py-16 bg-gray-50">
+        <div class="container mx-auto px-4">
+            <div class="max-w-4xl mx-auto">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold mb-4 text-neutral">AUC与R平方的对比</h2>
+                    <p class="text-lg text-gray-600 max-w-2xl mx-auto">关键差异与适用场景总结</p>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-md overflow-hidden mb-10">
+                    <div class="p-6 md:p-8">
+                        <h3 class="text-2xl font-semibold mb-6 text-neutral">核心差异</h3>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            特性
+                                        </th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-primary uppercase tracking-wider">
+                                            AUC
+                                        </th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-accent uppercase tracking-wider">
+                                            R平方
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                            适用模型类型
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            分类模型（主要是二分类）
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            回归模型
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                            衡量内容
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            模型区分正负样本的能力
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            模型对因变量变异的解释能力
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                            取值范围
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            0到1之间
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            可以小于0，通常在0到1之间
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                            对阈值的敏感性
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            不敏感，综合考虑所有可能阈值
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            不适用（回归模型无分类阈值）
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                            对数据分布的敏感性
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            对类别不平衡不敏感
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            对异常值敏感
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-md p-6 md:p-8">
+                    <h3 class="text-2xl font-semibold mb-4 text-neutral">如何选择合适的评估指标？</h3>
+                    
+                    <div class="mb-6">
+                        <p class="mb-4 leading-relaxed">选择评估指标应根据你的任务类型和具体需求：</p>
+                        
+                        <div class="space-y-4">
+                            <div class="p-4 border-l-4 border-primary bg-blue-50 rounded-r-lg">
+                                <h4 class="font-semibold text-primary">当你进行分类任务时：</h4>
+                                <p class="text-gray-700">使用AUC来评估模型的总体区分能力，尤其是在处理不平衡数据或需要比较不同模型时。</p>
+                            </div>
+                            
+                            <div class="p-4 border-l-4 border-accent bg-purple-50 rounded-r-lg">
+                                <h4 class="font-semibold text-accent">当你进行回归任务时：</h4>
+                                <p class="text-gray-700">使用R平方来评估模型对数据的拟合程度，了解自变量对因变量的解释能力。</p>
+                            </div>
+                            
+                            <div class="p-4 border-l-4 border-yellow-500 bg-yellow-50 rounded-r-lg">
+                                <h4 class="font-semibold text-yellow-700">通用建议：</h4>
+                                <p class="text-gray-700">不要仅依赖单一指标，应结合多个评估指标全面了解模型性能。例如，在分类任务中，除了AUC，还可以关注准确率、精确率和召回率等指标。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 小测验部分 -->
+    <section id="quiz" class="py-16 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="max-w-3xl mx-auto">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold mb-4 text-neutral">知识小测验</h2>
+                    <p class="text-lg text-gray-600">检验你对AUC和R平方的理解</p>
+                </div>
+                
+                <div class="space-y-6" id="quiz-container">
+                    <!-- 问题1 -->
+                    <div class="bg-gray-50 rounded-xl p-6 shadow-sm">
+                        <h3 class="text-xl font-semibold mb-4">问题1：AUC的值为0.5表示什么？</h3>
+                        <div class="space-y-3" data-correct="2">
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:bg-gray-100 cursor-pointer" data-index="1">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q1" class="mr-3">
+                                    <span>模型具有完美的分类能力</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:bg-gray-100 cursor-pointer" data-index="2">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q1" class="mr-3">
+                                    <span>模型的表现与随机猜测相同</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:bg-gray-100 cursor-pointer" data-index="3">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q1" class="mr-3">
+                                    <span>模型的表现比随机猜测还差</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="mt-4 hidden correct-feedback text-green-700 bg-green-50 p-3 rounded-lg">
+                            <i class="fa fa-check-circle mr-2"></i>
+                            <span>正确！AUC为0.5表示模型没有区分能力，与随机猜测效果相同。</span>
+                        </div>
+                        <div class="mt-4 hidden incorrect-feedback text-red-700 bg-red-50 p-3 rounded-lg">
+                            <i class="fa fa-times-circle mr-2"></i>
+                            <span>不正确。AUC为0.5表示模型的表现与随机猜测相同。</span>
+                        </div>
+                    </div>
+                    
+                    <!-- 问题2 -->
+                    <div class="bg-gray-50 rounded-xl p-6 shadow-sm">
+                        <h3 class="text-xl font-semibold mb-4">问题2：R平方值为0.8意味着什么？</h3>
+                        <div class="space-y-3" data-correct="1">
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:bg-gray-100 cursor-pointer" data-index="1">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q2" class="mr-3">
+                                    <span>模型可以解释因变量80%的变异</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:bg-gray-100 cursor-pointer" data-index="2">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q2" class="mr-3">
+                                    <span>模型的预测准确率为80%</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:bg-gray-100 cursor-pointer" data-index="3">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q2" class="mr-3">
+                                    <span>因变量和自变量之间有80%的相关性</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="mt-4 hidden correct-feedback text-green-700 bg-green-50 p-3 rounded-lg">
+                            <i class="fa fa-check-circle mr-2"></i>
+                            <span>正确！R平方值为0.8表示模型可以解释因变量80%的变异。</span>
+                        </div>
+                        <div class="mt-4 hidden incorrect-feedback text-red-700 bg-red-50 p-3 rounded-lg">
+                            <i class="fa fa-times-circle mr-2"></i>
+                            <span>不正确。R平方值表示模型可以解释的因变量变异的比例，0.8意味着80%的变异可以被解释。</span>
+                        </div>
+                    </div>
+                    
+                    <!-- 问题3 -->
+                    <div class="bg-gray-50 rounded-xl p-6 shadow-sm">
+                        <h3 class="text-xl font-semibold mb-4">问题3：以下哪种情况更适合使用AUC而非R平方？</h3>
+                        <div class="space-y-3" data-correct="3">
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:bg-gray-100 cursor-pointer" data-index="1">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q3" class="mr-3">
+                                    <span>预测房价（连续值）</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:bg-gray-100 cursor-pointer" data-index="2">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q3" class="mr-3">
+                                    <span>分析体重与身高的关系</span>
+                                </label>
+                            </div>
+                            <div class="quiz-option p-3 border border-gray-200 rounded-lg hover:bg-gray-100 cursor-pointer" data-index="3">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" name="q3" class="mr-3">
+                                    <span>预测用户是否会点击广告（是/否）</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="mt-4 hidden correct-feedback text-green-700 bg-green-50 p-3 rounded-lg">
+                            <i class="fa fa-check-circle mr-2"></i>
+                            <span>正确！AUC适用于分类任务，如预测用户是否点击广告这种二分类问题。</span>
+                        </div>
+                        <div class="mt-4 hidden incorrect-feedback text-red-700 bg-red-50 p-3 rounded-lg">
+                            <i class="fa fa-times-circle mr-2"></i>
+                            <span>不正确。AUC适用于分类任务，而前两个选项都是回归任务，更适合使用R平方。</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-8 text-center">
+                    <button id="check-answers" class="bg-primary hover:bg-primary/90 text-white font-medium py-3 px-8 rounded-lg transition-smooth shadow-md">
+                        检查答案 <i class="fa fa-check ml-2"></i>
+                    </button>
+                    <button id="reset-quiz" class="hidden ml-4 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 px-8 rounded-lg transition-smooth">
+                        重新开始 <i class="fa fa-refresh ml-2"></i>
+                    </button>
+                </div>
+                
+                <div id="quiz-result" class="mt-8 hidden p-6 rounded-xl text-center">
+                    <h3 class="text-2xl font-bold mb-2" id="result-message"></h3>
+                    <p class="text-lg" id="score-display"></p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 总结部分 -->
+    <section class="py-16 bg-gradient-to-r from-primary/90 to-accent/90 text-white">
+        <div class="container mx-auto px-4">
+            <div class="max-w-3xl mx-auto text-center">
+                <h2 class="text-3xl font-bold mb-6">总结</h2>
+                <p class="text-lg mb-8 leading-relaxed">
+                    AUC和R平方是机器学习中两个重要但用途不同的评估指标。AUC用于评估分类模型的区分能力，
+                    而R平方用于评估回归模型的拟合优度。理解这两个指标的含义和适用场景，
+                    有助于你更好地评估和改进机器学习模型。
+                </p>
+                <div class="inline-flex items-center bg-white/10 backdrop-blur-sm px-6 py-4 rounded-lg">
+                    <i class="fa fa-graduation-cap text-2xl mr-4"></i>
+                    <p class="text-lg">希望本网页能帮助你理解AUC和R平方的核心概念！</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 页脚 -->
+    <footer class="bg-neutral text-white py-10">
+        <div class="container mx-auto px-4">
+            <div class="max-w-4xl mx-auto">
+                <div class="flex flex-col md:flex-row justify-between items-center">
+                    <div class="mb-6 md:mb-0">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa fa-line-chart text-primary text-2xl"></i>
+                            <span class="text-xl font-bold">机器学习评估指标</span>
+                        </div>
+                        <p class="text-gray-400 mt-2">AUC与R平方详解</p>
+                    </div>
+                    <div class="flex space-x-6">
+                        <a href="#home" class="hover:text-primary transition-smooth">首页</a>
+                        <a href="#auc" class="hover:text-primary transition-smooth">AUC</a>
+                        <a href="#r-squared" class="hover:text-primary transition-smooth">R平方</a>
+                        <a href="#comparison" class="hover:text-primary transition-smooth">对比分析</a>
+                    </div>
+                </div>
+                <div class="mt-8 pt-6 border-t border-gray-700 text-center text-gray-400">
+                    <p>研一机器学习课程作业 | 解释AUC和R平方的网页展示</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // 移动端菜单切换
+        document.getElementById('menu-toggle').addEventListener('click', function() {
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenu.classList.toggle('hidden');
+        });
+        
+        // 平滑滚动
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                
+                // 关闭移动端菜单（如果打开）
+                document.getElementById('mobile-menu').classList.add('hidden');
+                
+                const targetId = this.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+                
+                if (targetElement) {
+                    window.scrollTo({
+                        top: targetElement.offsetTop - 80,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+        
+        // 滚动时导航栏样式变化
+        window.addEventListener('scroll', function() {
+            const nav = document.querySelector('nav');
+            if (window.scrollY > 50) {
+                nav.classList.add('py-2', 'shadow-lg');
+                nav.classList.remove('py-3', 'shadow-md');
+            } else {
+                nav.classList.add('py-3', 'shadow-md');
+                nav.classList.remove('py-2', 'shadow-lg');
+            }
+        });
+        
+        // 绘制ROC曲线和AUC
+        const rocCtx = document.getElementById('rocChart').getContext('2d');
+        const rocChart = new Chart(rocCtx, {
+            type: 'line',
+            data: {
+                labels: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+                datasets: [
+                    {
+                        label: '完美模型 (AUC = 1.0)',
+                        data: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+                        borderColor: '#10B981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        borderWidth: 2,
+                        tension: 0,
+                        fill: false,
+                        pointRadius: 3
+                    },
+                    {
+                        label: '良好模型 (AUC = 0.85)',
+                        data: [0, 0.3, 0.45, 0.55, 0.65, 0.7, 0.75, 0.8, 0.83, 0.9, 1.0],
+                        borderColor: '#3B82F6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        fill: false,
+                        pointRadius: 3
+                    },
+                    {
+                        label: '随机模型 (AUC = 0.5)',
+                        data: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+                        borderColor: '#9CA3AF',
+                        backgroundColor: 'rgba(156, 163, 175, 0.1)',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        tension: 0,
+                        fill: false,
+                        pointRadius: 3
+                    },
+                    {
+                        label: '较差模型 (AUC = 0.3)',
+                        data: [0, 0.05, 0.15, 0.25, 0.35, 0.45, 0.55, 0.65, 0.75, 0.85, 1.0],
+                        borderColor: '#EF4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        fill: false,
+                        pointRadius: 3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: '假正例率 (FPR)'
+                        },
+                        min: 0,
+                        max: 1.0
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: '真正例率 (TPR)'
+                        },
+                        min: 0,
+                        max: 1.0
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label;
+                            }
+                        }
+                    },
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+        
+        // 绘制R平方曲线
+        const rSquaredCtx = document.getElementById('rSquaredChart').getContext('2d');
+        
+        // 生成模拟数据
+        function generateData(rSquared, points = 50) {
+            const x = Array.from({length: points}, () => Math.random() * 100);
+            const yBase = x.map(val => 2 + 0.5 * val); // 基础线性关系
+            
+            // 根据R²计算噪声水平
+            const totalVariance = yBase.reduce((acc, val) => acc + Math.pow(val - yBase.reduce((a, b) => a + b, 0)/yBase.length, 2), 0);
+            const residualVariance = totalVariance * (1 - rSquared);
+            const noiseScale = Math.sqrt(residualVariance / points) * 5;
+            
+            const y = yBase.map(val => val + (Math.random() - 0.5) * 2 * noiseScale);
+            
+            return {x, y, yBase};
+        }
+        
+        const data1 = generateData(0.9); // 高R²值
+        const data2 = generateData(0.5); // 中等R²值
+        const data3 = generateData(0.1); // 低R²值
+        
+        const rSquaredChart = new Chart(rSquaredCtx, {
+            type: 'scatter',
+            data: {
+                datasets: [
+                    {
+                        label: '数据点 (R² = 0.9)',
+                        data: data1.x.map((val, i) => ({x: val, y: data1.y[i]})),
+                        backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    },
+                    {
+                        label: '回归线 (R² = 0.9)',
+                        data: data1.x.map((val, i) => ({x: val, y: data1.yBase[i]})),
+                        type: 'line',
+                        borderColor: 'rgba(16, 185, 129, 1)',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        fill: false
+                    },
+                    {
+                        label: '数据点 (R² = 0.5)',
+                        data: data2.x.map((val, i) => ({x: val, y: data2.y[i]})),
+                        backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    },
+                    {
+                        label: '回归线 (R² = 0.5)',
+                        data: data2.x.map((val, i) => ({x: val, y: data2.yBase[i]})),
+                        type: 'line',
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        fill: false
+                    },
+                    {
+                        label: '数据点 (R² = 0.1)',
+                        data: data3.x.map((val, i) => ({x: val, y: data3.y[i]})),
+                        backgroundColor: 'rgba(239, 68, 68, 0.6)',
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    },
+                    {
+                        label: '回归线 (R² = 0.1)',
+                        data: data3.x.map((val, i) => ({x: val, y: data3.yBase[i]})),
+                        type: 'line',
+                        borderColor: 'rgba(239, 68, 68, 1)',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: '自变量 (X)'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: '因变量 (Y)'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `(${context.parsed.x.toFixed(1)}, ${context.parsed.y.toFixed(1)})`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // 小测验功能
+        document.getElementById('check-answers').addEventListener('click', function() {
+            let score = 0;
+            const totalQuestions = document.querySelectorAll('#quiz-container > div').length;
+            
+            // 检查每个问题的答案
+            document.querySelectorAll('#quiz-container > div').forEach(question => {
+                const correctIndex = question.dataset.correct;
+                const selectedOption = question.querySelector('input[type="radio"]:checked');
+                
+                // 隐藏之前的反馈
+                question.querySelector('.correct-feedback').classList.add('hidden');
+                question.querySelector('.incorrect-feedback').classList.add('hidden');
+                
+                if (selectedOption) {
+                    const selectedIndex = selectedOption.closest('.quiz-option').dataset.index;
+                    
+                    // 显示反馈
+                    if (selectedIndex === correctIndex) {
+                        question.querySelector('.correct-feedback').classList.remove('hidden');
+                        score++;
+                    } else {
+                        question.querySelector('.incorrect-feedback').classList.remove('hidden');
+                    }
+                } else {
+                    // 如果未选择答案，也视为错误
+                    question.querySelector('.incorrect-feedback').classList.remove('hidden');
+                }
+                
+                // 禁用所有选项
+                question.querySelectorAll('input[type="radio"]').forEach(radio => {
+                    radio.disabled = true;
+                });
+            });
+            
+            // 显示结果
+            const resultMessage = document.getElementById('result-message');
+            const scoreDisplay = document.getElementById('score-display');
+            
+            scoreDisplay.textContent = `得分: ${score}/${totalQuestions}`;
+            
+            if (score === totalQuestions) {
+                resultMessage.textContent = '太棒了！全部答对了！';
+                resultMessage.className = 'text-2xl font-bold mb-2 text-green-600';
+            } else if (score > 0) {
+                resultMessage.textContent = '做得不错，但还有提升空间！';
+                resultMessage.className = 'text-2xl font-bold mb-2 text-yellow-600';
+            } else {
+                resultMessage.textContent = '再试一次吧！';
+                resultMessage.className = 'text-2xl font-bold mb-2 text-red-600';
+            }
+            
+            document.getElementById('quiz-result').classList.remove('hidden');
+            this.classList.add('hidden');
+            document.getElementById('reset-quiz').classList.remove('hidden');
+        });
+        
+        // 重置测验
+        document.getElementById('reset-quiz').addEventListener('click', function() {
+            // 重置所有选项
+            document.querySelectorAll('#quiz-container > div').forEach(question => {
+                // 清除选中状态
+                question.querySelectorAll('input[type="radio"]').forEach(radio => {
+                    radio.checked = false;
+                    radio.disabled = false;
+                });
+                
+                // 隐藏反馈
+                question.querySelector('.correct-feedback').classList.add('hidden');
+                question.querySelector('.incorrect-feedback').classList.add('hidden');
+            });
+            
+            // 隐藏结果
+            document.getElementById('quiz-result').classList.add('hidden');
+            
+            // 切换按钮显示状态
+            this.classList.add('hidden');
+            document.getElementById('check-answers').classList.remove('hidden');
+        });
+        
+        // 为选项添加点击效果
+        document.querySelectorAll('.quiz-option').forEach(option => {
+            option.addEventListener('click', function() {
+                const radio = this.querySelector('input[type="radio"]');
+                if (!radio.disabled) {
+                    radio.checked = true;
+                }
+            });
+        });
+    </script>
+</body>
+</html>
